@@ -1,7 +1,9 @@
 import type { GestureResponderEvent } from 'react-native';
 import React from 'react';
 import BaseButton from '../BaseButton';
-import type { BaseButtonProps } from '../BaseButton/BaseButton';
+import type { BaseButtonProps, ButtonAvatar } from '../BaseButton/BaseButton';
+
+export type { ButtonAvatar };
 import type { IconComponent } from '~components/Icons';
 import type { Platform } from '~utils';
 import type { StyledPropsBlade } from '~components/Box/styledProps';
@@ -41,12 +43,10 @@ type ButtonCommonProps = {
   isDisabled?: boolean;
   isFullWidth?: boolean;
   isLoading?: boolean;
-  /**
-   * Determines the type of loading indicator displayed when `isLoading` is true.
-   *
-   * @default 'indefinite'
-   */
-  loadingType?: 'indefinite';
+  loadingType?: 'indefinite' | 'definite';
+  loadingTimer?: number;
+  onLoadingComplete?: () => void;
+  avatars?: BaseButtonProps['avatars'];
   accessibilityLabel?: string;
   type?: 'button' | 'reset' | 'submit';
 
@@ -118,6 +118,9 @@ const _Button: React.ForwardRefRenderFunction<BladeElementRef, ButtonProps> = (
     isFullWidth = false,
     isLoading = false,
     loadingType = 'indefinite',
+    loadingTimer,
+    onLoadingComplete,
+    avatars,
     href,
     target,
     rel,
@@ -168,6 +171,9 @@ const _Button: React.ForwardRefRenderFunction<BladeElementRef, ButtonProps> = (
       variant={variant}
       isLoading={isLoading}
       loadingType={loadingType}
+      loadingTimer={loadingTimer}
+      onLoadingComplete={onLoadingComplete}
+      avatars={avatars}
       testID={testID}
       onBlur={onBlur}
       onFocus={onFocus}

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import type { GestureResponderEvent } from 'react-native';
 import StyledBaseButton from './StyledBaseButton';
 import type { ButtonTypography, ButtonBoxShadow } from './buttonTokens';
@@ -56,6 +56,13 @@ import { getStringFromReactText } from '~src/utils/getStringChildren';
 import type { BladeCommonEvents } from '~components/types';
 import { throwBladeError } from '~utils/logger';
 import { makeAnalyticsAttribute } from '~utils/makeAnalyticsAttribute';
+import { AvatarGroup } from '~components/Avatar/AvatarGroup';
+import { Avatar } from '~components/Avatar/Avatar';
+
+type ButtonAvatarBase = { alt?: string };
+
+export type ButtonAvatar = ButtonAvatarBase &
+  ({ name: string; src?: string } | { name?: string; src: string });
 
 type BaseButtonCommonProps = {
   href?: BaseLinkProps['href'];
@@ -77,12 +84,10 @@ type BaseButtonCommonProps = {
   }>;
   type?: 'button' | 'reset' | 'submit';
   isLoading?: boolean;
-  /**
-   * Determines the type of loading indicator displayed when `isLoading` is true.
-   *
-   * @default 'indefinite'
-   */
-  loadingType?: 'indefinite';
+  loadingType?: 'indefinite' | 'definite';
+  loadingTimer?: number;
+  onLoadingComplete?: () => void;
+  avatars?: ButtonAvatar[];
   accessibilityProps?: Partial<AccessibilityProps>;
   variant?: 'primary' | 'secondary' | 'tertiary';
   color?:
@@ -384,6 +389,33 @@ const ButtonContent = styled(BaseBox)<{ isHidden: boolean }>(({ isHidden }) => (
   opacity: isHidden ? 0 : 1,
 }));
 
+const progressRecede = keyframes`
+  from { width: 100%; }
+  to { width: 0%; }
+`;
+
+const ProgressOverlay = styled.div({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  bottom: 0,
+  right: 0,
+  zIndex: 0,
+  overflow: 'hidden',
+  pointerEvents: 'none',
+  borderRadius: 'inherit',
+});
+
+const ProgressFill = styled.div<{ duration: number; fillColor: string }>`
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: ${({ fillColor }) => fillColor};
+  animation: ${progressRecede} ${({ duration }) => duration}ms linear forwards;
+`;
+
 const _BaseButton: React.ForwardRefRenderFunction<BladeElementRef, BaseButtonProps> = (
   {
     href,
@@ -400,6 +432,9 @@ const _BaseButton: React.ForwardRefRenderFunction<BladeElementRef, BaseButtonPro
     isFullWidth = false,
     isLoading = false,
     loadingType = 'indefinite',
+    loadingTimer,
+    onLoadingComplete,
+    avatars,
     onClick,
     onBlur,
     onKeyDown,
@@ -426,10 +461,41 @@ const _BaseButton: React.ForwardRefRenderFunction<BladeElementRef, BaseButtonPro
   const childrenString = getStringFromReactText(children);
   const isChildrenComponent = React.isValidElement(children);
 
+  const isDefiniteLoadingConfigured =
+    loadingType === 'definite' && typeof loadingTimer === 'number' && loadingTimer > 0;
+  const [definiteLoadingRun, setDefiniteLoadingRun] = React.useState(0);
+  const prevDefiniteConfigured = usePrevious(isDefiniteLoadingConfigured);
+  const hasBeenConfiguredRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isDefiniteLoadingConfigured && !prevDefiniteConfigured) {
+      if (hasBeenConfiguredRef.current) {
+        setDefiniteLoadingRun((r) => r + 1);
+      }
+      hasBeenConfiguredRef.current = true;
+    }
+  }, [isDefiniteLoadingConfigured, prevDefiniteConfigured]);
+
+  const definiteLoadingKey = isDefiniteLoadingConfigured
+    ? `${loadingType}:${loadingTimer}:${definiteLoadingRun}`
+    : null;
+
+  const [completedDefiniteLoadingKey, setCompletedDefiniteLoadingKey] = React.useState<
+    string | null
+  >(null);
+
+  const isIndefiniteLoading = loadingType === 'indefinite' && isLoading;
+  const isDefiniteLoading =
+    definiteLoadingKey !== null && definiteLoadingKey !== completedDefiniteLoadingKey;
+  const isAnyLoading = isIndefiniteLoading || isDefiniteLoading;
+
+  const shouldShowAvatars =
+    Boolean(avatars && avatars.length > 0) && size === 'large' && !isIndefiniteLoading;
+
   // Button cannot be disabled when its rendered as Link
   // button should be allowed to be disabled in any case...
   // either through button group or we should allow to disable an individual button
-  const disabled = buttonGroupProps.isDisabled || isLoading || (isDisabled && !isLink);
+  const disabled = buttonGroupProps.isDisabled || isAnyLoading || (isDisabled && !isLink);
 
   if (__DEV__) {
     if (!Icon && !childrenString?.trim()) {
@@ -477,13 +543,20 @@ const _BaseButton: React.ForwardRefRenderFunction<BladeElementRef, BaseButtonPro
   } = getProps({
     buttonTypographyTokens: buttonTypography,
     childrenString,
-    isDisabled: disabled,
+    isDisabled: disabled && !isDefiniteLoading,
     size: buttonGroupProps.size ?? size,
     variant: buttonGroupProps.variant ?? variant,
     theme,
     color: buttonGroupProps.color ?? color,
     hasIcon: Boolean(Icon),
   });
+
+  const progressFillColor = React.useMemo(() => {
+    if (!isDefiniteLoading) return '';
+    const token = getBackgroundColorToken({ variant, color, state: 'disabled' });
+    if (token.startsWith('linear-gradient')) return token;
+    return getIn(theme.colors, token as DotNotationToken<Theme['colors']>);
+  }, [isDefiniteLoading, variant, color, theme]);
 
   const renderElement = React.useMemo(() => getRenderElement(href), [href]);
   const defaultRole = isLink ? 'link' : 'button';
@@ -596,12 +669,25 @@ const _BaseButton: React.ForwardRefRenderFunction<BladeElementRef, BaseButtonPro
       {...getStyledProps(rest)}
       {...makeAnalyticsAttribute(rest)}
     >
+      {isDefiniteLoading && (
+        <ProgressOverlay>
+          <ProgressFill
+            key={definiteLoadingKey}
+            duration={loadingTimer!}
+            fillColor={progressFillColor}
+            onAnimationEnd={() => {
+              setCompletedDefiniteLoadingKey(definiteLoadingKey);
+              onLoadingComplete?.();
+            }}
+          />
+        </ProgressOverlay>
+      )}
       <AnimatedButtonContent
         motionDuration={motionDuration}
         motionEasing={motionEasing}
         isPressed={isPressed}
       >
-        {isLoading && loadingType === 'indefinite' ? (
+        {isIndefiniteLoading ? (
           <BaseBox
             display="flex"
             justifyContent="center"
@@ -632,7 +718,7 @@ const _BaseButton: React.ForwardRefRenderFunction<BladeElementRef, BaseButtonPro
           alignItems="center"
           justifyContent="center"
           flex={1}
-          isHidden={isLoading}
+          isHidden={isIndefiniteLoading}
           zIndex={1}
         >
           {Icon && iconPosition == 'left' ? (
@@ -663,6 +749,20 @@ const _BaseButton: React.ForwardRefRenderFunction<BladeElementRef, BaseButtonPro
           {Icon && iconPosition == 'right' ? (
             <BaseBox display="flex" justifyContent="center" alignItems="center">
               <Icon size={iconSize} color={iconColor} />
+            </BaseBox>
+          ) : null}
+          {shouldShowAvatars && avatars ? (
+            <BaseBox display="flex" alignItems="center" paddingLeft="spacing.3">
+              <AvatarGroup size="xsmall" density="comfortable">
+                {avatars.map((avatar, i) => (
+                  <Avatar
+                    key={avatar.src ?? avatar.name ?? i}
+                    name={avatar.name}
+                    src={avatar.src}
+                    alt={avatar.alt}
+                  />
+                ))}
+              </AvatarGroup>
             </BaseBox>
           ) : null}
         </ButtonContent>

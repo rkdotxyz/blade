@@ -736,3 +736,102 @@ export const AllVariantsAndSizes: StoryFn<typeof ButtonComponent> = () => {
 };
 
 AllVariantsAndSizes.storyName = 'All Variants & Sizes';
+
+const DefiniteLoadingExample = (args: ButtonProps): React.ReactElement => {
+  const [key, setKey] = useState(0);
+  const [completed, setCompleted] = useState(false);
+
+  return (
+    <BaseBox display="flex" flexDirection="column" gap="spacing.4">
+      <ButtonComponent
+        {...args}
+        key={key}
+        loadingType="definite"
+        loadingTimer={3000}
+        onLoadingComplete={() => {
+          setCompleted(true);
+          console.log('onLoadingComplete fired!');
+        }}
+      >
+        Pay Now
+      </ButtonComponent>
+      <Text>{completed ? 'Loading complete!' : 'Loading in progress...'}</Text>
+      <ButtonComponent
+        size="small"
+        variant="secondary"
+        onClick={() => {
+          setCompleted(false);
+          setKey((k) => k + 1);
+        }}
+      >
+        Restart
+      </ButtonComponent>
+    </BaseBox>
+  );
+};
+
+export const DefiniteLoading: StoryFn<typeof ButtonComponent> = (args) => {
+  return <DefiniteLoadingExample {...args} />;
+};
+DefiniteLoading.storyName = 'Definite Loading';
+DefiniteLoading.args = {
+  variant: 'primary',
+  size: 'medium',
+};
+DefiniteLoading.parameters = {
+  docs: {
+    description: {
+      story:
+        'Definite loading shows a left-to-right progress bar that fills over `loadingTimer` ms. The button stays in its normal color while a rest-colored overlay recedes. `onLoadingComplete` fires when the progress reaches 100%.',
+    },
+  },
+};
+
+export const ButtonWithAvatars: StoryFn<typeof ButtonComponent> = (args) => {
+  return (
+    <BaseBox display="flex" flexDirection="column" gap="spacing.4">
+      <ButtonComponent
+        {...args}
+        size="large"
+        avatars={[
+          { name: 'Anurag Hazra', src: 'https://avatars.githubusercontent.com/u/36589645' },
+          {
+            name: 'Kamlesh Chandnani',
+            src: 'https://avatars.githubusercontent.com/u/11801881',
+          },
+          { name: 'Saurabh Daware', src: 'https://avatars.githubusercontent.com/u/30949385' },
+        ]}
+      >
+        Assign
+      </ButtonComponent>
+      <Text size="small" color="surface.text.gray.muted">
+        Avatars only render on large buttons
+      </Text>
+      <ButtonComponent
+        {...args}
+        size="medium"
+        avatars={[
+          { name: 'Anurag Hazra', src: 'https://avatars.githubusercontent.com/u/36589645' },
+          {
+            name: 'Kamlesh Chandnani',
+            src: 'https://avatars.githubusercontent.com/u/11801881',
+          },
+        ]}
+      >
+        Assign (medium - no avatars)
+      </ButtonComponent>
+    </BaseBox>
+  );
+};
+ButtonWithAvatars.storyName = 'With Avatars';
+ButtonWithAvatars.args = {
+  variant: 'primary',
+};
+ButtonWithAvatars.parameters = {
+  docs: {
+    description: {
+      story:
+        'Avatars render after the button text as an AvatarGroup with comfortable density. Only rendered for `large` buttons; ignored for smaller sizes.',
+    },
+  },
+};
