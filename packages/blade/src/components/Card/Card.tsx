@@ -14,6 +14,7 @@ import { getStyledProps } from '~components/Box/styledProps';
 import type { StyledPropsBlade } from '~components/Box/styledProps';
 import type { DataAnalyticsAttribute, BladeElementRef, TestID } from '~utils/types';
 import { assignWithoutSideEffects } from '~utils/assignWithoutSideEffects';
+import { throwBladeError } from '~utils/logger';
 import type { Elevation } from '~tokens/global';
 import type { BoxProps } from '~components/Box';
 import { makeAccessible } from '~utils/makeAccessible';
@@ -256,6 +257,16 @@ const _Card: React.ForwardRefRenderFunction<BladeElementRef, CardProps> = (
 ): React.ReactElement => {
   const [isFocused, setIsFocused] = React.useState(false);
   const { colorScheme } = useTheme();
+
+  if (__DEV__) {
+    if (variant === 'secondary' && isSelected) {
+      throwBladeError({
+        message:
+          'Card variant="secondary" does not support isSelected. The secondary variant is a flat surface without selection states.',
+        moduleName: 'Card',
+      });
+    }
+  }
 
   useVerifyAllowedChildren({
     children,
