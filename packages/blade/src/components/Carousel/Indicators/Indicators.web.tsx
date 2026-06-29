@@ -39,7 +39,7 @@ const Indicators = (props: IndicatorsProps): React.ReactElement => {
             isActive={idx === props.activeIndex}
             onClick={() => props?.onClick?.(idx)}
             variant={props.variant}
-            isAutoPlaying={isAutoPlaying}
+            {...(isMobile && { isAutoPlaying })}
           />
         );
       })}

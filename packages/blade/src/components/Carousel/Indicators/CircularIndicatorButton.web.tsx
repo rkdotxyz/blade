@@ -36,7 +36,7 @@ const StyledCircularButton = styled.button(({ theme }) => ({
   border: 'none',
   cursor: 'pointer',
   padding: 0,
-  backgroundColor: 'transparent',
+  backgroundColor: theme.colors.transparent,
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -58,7 +58,7 @@ const CircularIndicatorButton = ({
   isActive,
   variant,
   isAutoPlaying,
-  slideIndex: _slideIndex,
+  slideIndex,
   ...rest
 }: CircularIndicatorButtonProps): React.ReactElement => {
   const { theme } = useTheme();
@@ -88,6 +88,7 @@ const CircularIndicatorButton = ({
         <circle cx={CENTER} cy={CENTER} r={DOT_RADIUS} fill={fillColor} stroke="none" />
         {isActive && (
           <ProgressRing
+            key={slideIndex}
             $animate={Boolean(showProgressRing)}
             cx={CENTER}
             cy={CENTER}

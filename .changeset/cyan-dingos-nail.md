@@ -1,5 +1,5 @@
 ---
-"@razorpay/blade": patch
+"@razorpay/blade": minor
 ---
 
 feat(carousel): circular progress indicator on mobile
