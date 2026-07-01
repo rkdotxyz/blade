@@ -5,6 +5,7 @@ import Animated, {
   cancelAnimation,
   useAnimatedProps,
   useSharedValue,
+  withRepeat,
   withTiming,
   Easing,
 } from 'react-native-reanimated';
@@ -53,10 +54,14 @@ const CircularIndicatorButton = ({
     if (showProgressRing) {
       cancelAnimation(progress);
       progress.value = CIRCUMFERENCE;
-      progress.value = withTiming(0, {
-        duration: CAROUSEL_AUTOPLAY_INTERVAL,
-        easing: Easing.linear,
-      });
+      progress.value = withRepeat(
+        withTiming(0, {
+          duration: CAROUSEL_AUTOPLAY_INTERVAL,
+          easing: Easing.linear,
+        }),
+        -1,
+        false,
+      );
     } else {
       cancelAnimation(progress);
       progress.value = CIRCUMFERENCE;

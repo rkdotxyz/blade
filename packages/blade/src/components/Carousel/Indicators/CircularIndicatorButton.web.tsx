@@ -28,7 +28,7 @@ const ProgressRing = styled.circle<{ $animate: boolean }>`
   ${({ $animate }) =>
     $animate &&
     css`
-      animation: ${progressAnimation} ${CAROUSEL_AUTOPLAY_INTERVAL}ms linear forwards;
+      animation: ${progressAnimation} ${CAROUSEL_AUTOPLAY_INTERVAL}ms linear infinite;
     `}
 `;
 
